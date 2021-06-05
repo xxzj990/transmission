@@ -17,6 +17,8 @@ const methodStopTorrent = 'torrent-stop';
 const methodUpdateTorrent = 'torrent-reannounce';
 const methodVerifyTorrent = 'torrent-verify';
 
+const methodSessionStats = 'session-stats';
+
 extension RequestOptionsExtension on RequestOptions {
   Options toOptions() {
     return Options(
@@ -55,8 +57,7 @@ class Transmission {
         responseBody: true,
       ));
     }
-    _dio.interceptors.add(
-        InterceptorsWrapper(onRequest: (RequestOptions options, handler) async {
+    _dio.interceptors.add(InterceptorsWrapper(onRequest: (RequestOptions options, handler) async {
       if (csrfToken != null) {
         options.headers[csrfProtectionHeader] = csrfToken;
       }
@@ -103,16 +104,9 @@ class Transmission {
   /// [baseUrl] url of the transmission server instance, default to http://localhost:9091/transmission/rpc
   /// [proxyUrl] url use as a proxy, urls will be added at the end before request, default to null
   /// [enableLog] boolean to show http logs or not
-  factory Transmission(
-      {String? baseUrl, String? proxyUrl, bool enableLog = false}) {
+  factory Transmission({String? baseUrl, String? proxyUrl, bool enableLog = false}) {
     baseUrl ??= 'http://localhost:9091/transmission/rpc';
-    return Transmission._(
-        Dio(BaseOptions(
-            baseUrl: proxyUrl == null
-                ? baseUrl
-                : proxyUrl + Uri.encodeComponent(baseUrl))),
-        proxyUrl != null,
-        enableLog);
+    return Transmission._(Dio(BaseOptions(baseUrl: proxyUrl == null ? baseUrl : proxyUrl + Uri.encodeComponent(baseUrl))), proxyUrl != null, enableLog);
   }
 
   /// close all connexions
@@ -201,15 +195,12 @@ class Transmission {
     final response = _Response.fromJSON(results.data);
     if (response.isSuccess) {
       if (response.arguments!['torrent-duplicate'] != null) {
-        throw AddTorrentException._(
-            response.copyWith(result: 'Torrent duplicated'),
-            TorrentLight._(response.arguments!['torrent-duplicate']));
+        throw AddTorrentException._(response.copyWith(result: 'Torrent duplicated'), TorrentLight._(response.arguments!['torrent-duplicate']));
       } else {
         return TorrentLight._(response.arguments!['torrent-added']);
       }
     } else {
-      throw AddTorrentException._(
-          response, TorrentLight._(response.arguments!['torrent-duplicate']));
+      throw AddTorrentException._(response, TorrentLight._(response.arguments!['torrent-duplicate']));
     }
   }
 
@@ -312,10 +303,7 @@ class Transmission {
     final torrentsData = response.arguments!['torrents'];
     final torrentsRemoved = response.arguments!['removed'];
     return RecentlyActiveTorrent(
-      torrentsData
-          .map((data) => Torrent._(data))
-          .cast<Torrent>()
-          .toList(growable: false),
+      torrentsData.map((data) => Torrent._(data)).cast<Torrent>().toList(growable: false),
       torrentsRemoved?.cast<int>(),
     );
   }
@@ -355,10 +343,7 @@ class Transmission {
     final response = _Response.fromJSON(results.data);
     _checkResults(response);
     final torrentsData = response.arguments!['torrents'];
-    return torrentsData
-        .map((data) => Torrent._(data))
-        .cast<Torrent>()
-        .toList(growable: false);
+    return torrentsData.map((data) => Torrent._(data)).cast<Torrent>().toList(growable: false);
   }
 
   /// Get data session, fields can be provided to get only needed information
@@ -391,10 +376,17 @@ class Transmission {
   /// [fields] to set, can be checked at https://github.com/transmission/transmission/blob/master/extras/rpc-spec.txt
   /// Throws [TransmissionException] if errors
   Future<void> setSession(Map<String, dynamic> fields) async {
-    final results = await _dio.post('/',
-        data: _Request(methodSetSession, arguments: fields).toJSON());
+    final results = await _dio.post('/', data: _Request(methodSetSession, arguments: fields).toJSON());
     final response = _Response.fromJSON(results.data);
     _checkResults(response);
+  }
+
+  /// Session Statistics
+  Future<SessionStatistics> getSessionStatistics() async {
+    final results = await _dio.post('/', data: _Request(methodSessionStats).toJSON());
+    final response = _Response.fromJSON(results.data);
+    _checkResults(response);
+    return SessionStatistics._(response.arguments!);
   }
 }
 
@@ -501,8 +493,7 @@ class Torrent {
     return 'Unkown';
   }
 
-  double? get metadataPercentComplete =>
-      _rawData['metadataPercentComplete'] * 100.0;
+  double? get metadataPercentComplete => _rawData['metadataPercentComplete'] * 100.0;
 
   int? get sizeWhenDone => _rawData['sizeWhenDone'];
 
@@ -512,8 +503,7 @@ class Torrent {
 
   int? get rateDownload => _rawData['rateDownload'];
 
-  String get prettyRateDownload =>
-      _prettySize(rateDownload!, decimal: 1) + '/s';
+  String get prettyRateDownload => _prettySize(rateDownload!, decimal: 1) + '/s';
 
   String get prettyRateUpload => _prettySize(rateUpload!, decimal: 1) + '/s';
 
@@ -563,6 +553,33 @@ class Torrent {
   }
 }
 
+class SessionStatistics {
+  final Map<String, dynamic> _rawData;
+
+  SessionStatistics._(this._rawData);
+
+  Map<String, dynamic> get rawData => _rawData;
+
+  int get activeTorrentCount => _rawData['activeTorrentCount'];
+
+  int get downloadSpeed => _rawData['downloadSpeed'];
+
+  int get pausedTorrentCount => _rawData['pausedTorrentCount'];
+
+  int get torrentCount => _rawData['torrentCount'];
+
+  int get uploadSpeed => _rawData['uploadSpeed'];
+
+  dynamic operator [](String name) {
+    return _rawData[name];
+  }
+
+  @override
+  String toString() {
+    return 'SessionStatistics: $_rawData';
+  }
+}
+
 class _Request {
   final String method;
   final Map<String, dynamic>? arguments;
@@ -592,8 +609,7 @@ class _Response {
   _Response(this.result, {this.arguments, this.tag});
 
   factory _Response.fromJSON(Map<String, dynamic> data) {
-    return _Response(data['result'],
-        arguments: data['arguments'], tag: data['tag']);
+    return _Response(data['result'], arguments: data['arguments'], tag: data['tag']);
   }
 
   _Response copyWith({String? result}) {
