@@ -313,6 +313,7 @@ class Transmission {
   /// Returns list of [Torrent] currently in transmission instance
   /// Throws [TransmissionException] if errors
   Future<List<Torrent>?> getTorrents({
+    List<int>? ids,
     List<String> fields = const [
       'id',
       'name',
@@ -336,10 +337,7 @@ class Transmission {
       'peersSendingToUs',
     ],
   }) async {
-    final results = await _dio.post('/',
-        data: _Request(methodGetTorrent, arguments: {
-          'fields': fields,
-        }).toJSON());
+    final results = await _dio.post('/', data: _Request(methodGetTorrent, arguments: ids != null ? {'ids': ids, 'fields': fields} : {'fields': fields}).toJSON());
     final response = _Response.fromJSON(results.data);
     _checkResults(response);
     final torrentsData = response.arguments!['torrents'];
