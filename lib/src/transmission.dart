@@ -18,6 +18,7 @@ const methodUpdateTorrent = 'torrent-reannounce';
 const methodVerifyTorrent = 'torrent-verify';
 
 const methodSessionStats = 'session-stats';
+const methodFreeSpace = 'free-space';
 
 extension RequestOptionsExtension on RequestOptions {
   Options toOptions() {
@@ -386,6 +387,14 @@ class Transmission {
     _checkResults(response);
     return SessionStatistics._(response.arguments!);
   }
+
+  /// Free Space
+  Future<FreeSpace> getFreeSpace(String path) async {
+    final results = await _dio.post('/', data: _Request(methodFreeSpace, arguments: {'path': path}).toJSON());
+    final response = _Response.fromJSON(results.data);
+    _checkResults(response);
+    return FreeSpace._(response.arguments!);
+  }
 }
 
 class RecentlyActiveTorrent {
@@ -575,6 +584,27 @@ class SessionStatistics {
   @override
   String toString() {
     return 'SessionStatistics: $_rawData';
+  }
+}
+
+class FreeSpace {
+  final Map<String, dynamic> _rawData;
+
+  FreeSpace._(this._rawData);
+
+  Map<String, dynamic> get rawData => _rawData;
+
+  String get path => _rawData['path'];
+
+  int get size => _rawData['size-bytes'];
+
+  dynamic operator [](String name) {
+    return _rawData[name];
+  }
+
+  @override
+  String toString() {
+    return 'FreeSpace: $_rawData';
   }
 }
 
