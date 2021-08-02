@@ -395,6 +395,13 @@ class Transmission {
     _checkResults(response);
     return FreeSpace._(response.arguments!);
   }
+
+  /// Torrents set
+  Future<void> setTorrents(Map<String, dynamic> fields) async {
+    final results = await _dio.post('/', data: _Request(methodSetTorrent, arguments: fields).toJSON());
+    final response = _Response.fromJSON(results.data);
+    _checkResults(response);
+  }
 }
 
 class RecentlyActiveTorrent {
