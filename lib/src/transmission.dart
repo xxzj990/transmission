@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 
 const csrfProtectionHeader = 'X-Transmission-Session-Id';
@@ -45,11 +47,12 @@ extension RequestOptionsExtension on RequestOptions {
 /// Documentation about the API at https://github.com/transmission/transmission/blob/master/extras/rpc-spec.txt
 class Transmission {
   final bool enableLog;
-  final bool proxified;
   final Dio _dio;
   final Dio _tokenDio = Dio();
+  final bool useProxy;
+  final String url;
 
-  Transmission._(this._dio, this.proxified, this.enableLog) {
+  Transmission._(this._dio, this.url, this.useProxy, this.enableLog) {
     _tokenDio.options = _dio.options;
     String? csrfToken;
     if (enableLog) {
@@ -85,6 +88,7 @@ class Transmission {
             onSendProgress: options.onSendProgress,
             queryParameters: options.queryParameters,
           );
+
           _dio.unlock();
           handler.resolve(response);
         } on DioError catch (err) {
@@ -102,18 +106,36 @@ class Transmission {
   }
 
   /// Documentation about the API at https://github.com/transmission/transmission/blob/master/extras/rpc-spec.txt
-  /// [baseUrl] url of the transmission server instance, default to http://localhost:9091/transmission/rpc
-  /// [proxyUrl] url use as a proxy, urls will be added at the end before request, default to null
-  /// [enableLog] boolean to show http logs or not
-  factory Transmission({String? baseUrl, String? proxyUrl, bool enableLog = false}) {
-    baseUrl ??= 'http://localhost:9091/transmission/rpc';
-    return Transmission._(Dio(BaseOptions(baseUrl: proxyUrl == null ? baseUrl : proxyUrl + Uri.encodeComponent(baseUrl))), proxyUrl != null, enableLog);
+  factory Transmission({required String url, String? proxyUrl, bool enableLog = false}) {
+    String proxy = '';
+    if (proxyUrl != null && proxyUrl.isNotEmpty) {
+      if (proxyUrl.endsWith('/')) {
+        proxy = proxyUrl.substring(0, proxyUrl.length - 1);
+      } else {
+        proxy = proxyUrl;
+      }
+    }
+    return Transmission._(
+      Dio(BaseOptions(baseUrl: proxy.isEmpty ? url : proxy)),
+      url,
+      proxy.isNotEmpty,
+      enableLog,
+    );
   }
 
   /// close all connexions
   void dispose() {
     _dio.close();
     _tokenDio.close();
+  }
+
+  Future<Response> _post({required Map<String, dynamic> data}) async {
+    if (useProxy) {
+      var proxyBody = {'url': Uri.encodeFull(url), 'body': data};
+      return await _dio.post('/request2', data: json.encode(proxyBody));
+    } else {
+      return await _dio.post('/', data: data);
+    }
   }
 
   /// Remove torrents by their given ids
@@ -124,11 +146,15 @@ class Transmission {
     List<int> ids, {
     bool deleteLocalData = false,
   }) async {
-    final results = await _dio.post('/',
-        data: _Request(methodRemoveTorrent, arguments: {
+    final results = await _post(
+      data: _Request(
+        methodRemoveTorrent,
+        arguments: {
           'ids': ids,
           'delete-local-data': deleteLocalData,
-        }).toJSON());
+        },
+      ).toJSON(),
+    );
     _checkResults(_Response.fromJSON(results.data));
   }
 
@@ -390,7 +416,9 @@ class Transmission {
 
   /// Free Space
   Future<FreeSpace> getFreeSpace(String path) async {
-    final results = await _dio.post('/', data: _Request(methodFreeSpace, arguments: {'path': path}).toJSON());
+    final results = await _post(data: _Request(methodFreeSpace, arguments: {'path': path}).toJSON());
+    print('getFreeSpace ret headers:${results.headers}');
+    print('getFreeSpace ret:${results.data}');
     final response = _Response.fromJSON(results.data);
     _checkResults(response);
     return FreeSpace._(response.arguments!);
