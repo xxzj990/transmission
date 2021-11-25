@@ -168,12 +168,12 @@ class Transmission {
     String location, {
     bool move = false,
   }) async {
-    final results = await _dio.post('/',
+    final results = await _post(
         data: _Request(methodMoveTorrent, arguments: {
-          'ids': ids,
-          'location': location,
-          'move': move,
-        }).toJSON());
+      'ids': ids,
+      'location': location,
+      'move': move,
+    }).toJSON());
     _checkResults(_Response.fromJSON(results.data));
   }
 
@@ -187,12 +187,12 @@ class Transmission {
     String? name,
     String? path,
   }) async {
-    final results = await _dio.post('/',
+    final results = await _post(
         data: _Request(methodRenameTorrent, arguments: {
-          'ids': id,
-          if (path != null) 'path': path,
-          if (name != null) 'name': name,
-        }).toJSON());
+      'ids': id,
+      if (path != null) 'path': path,
+      if (name != null) 'name': name,
+    }).toJSON());
     _checkResults(_Response.fromJSON(results.data));
   }
 
@@ -211,14 +211,14 @@ class Transmission {
     String? cookies,
     bool? paused,
   }) async {
-    final results = await _dio.post('/',
+    final results = await _post(
         data: _Request(methodAddTorrent, arguments: {
-          if (filename != null) 'filename': filename,
-          if (metaInfo != null) 'metainfo': metaInfo,
-          if (downloadDir != null) 'download-dir': downloadDir,
-          if (cookies != null) 'cookies': cookies,
-          if (paused != null) 'paused': paused,
-        }).toJSON());
+      if (filename != null) 'filename': filename,
+      if (metaInfo != null) 'metainfo': metaInfo,
+      if (downloadDir != null) 'download-dir': downloadDir,
+      if (cookies != null) 'cookies': cookies,
+      if (paused != null) 'paused': paused,
+    }).toJSON());
     final response = _Response.fromJSON(results.data);
     if (response.isSuccess) {
       if (response.arguments!['torrent-duplicate'] != null) {
@@ -235,10 +235,10 @@ class Transmission {
   /// [ids] integer identifier list of the torrents to remove
   /// Throws [TransmissionException] if errors
   Future<void> stopTorrents(List<int> ids) async {
-    final results = await _dio.post('/',
+    final results = await _post(
         data: _Request(methodStopTorrent, arguments: {
-          'ids': ids,
-        }).toJSON());
+      'ids': ids,
+    }).toJSON());
     _checkResults(_Response.fromJSON(results.data));
   }
 
@@ -246,10 +246,10 @@ class Transmission {
   /// [ids] integer identifier list of the torrents to remove
   /// Throws [TransmissionException] if errors
   Future<void> startNowTorrents(List<int> ids) async {
-    final results = await _dio.post('/',
+    final results = await _post(
         data: _Request(methodStartNowTorrent, arguments: {
-          'ids': ids,
-        }).toJSON());
+      'ids': ids,
+    }).toJSON());
     _checkResults(_Response.fromJSON(results.data));
   }
 
@@ -257,10 +257,10 @@ class Transmission {
   /// [ids] integer identifier list of the torrents to remove
   /// Throws [TransmissionException] if errors
   Future<void> startTorrents(List<int> ids) async {
-    final results = await _dio.post('/',
+    final results = await _post(
         data: _Request(methodStartTorrent, arguments: {
-          'ids': ids,
-        }).toJSON());
+      'ids': ids,
+    }).toJSON());
     _checkResults(_Response.fromJSON(results.data));
   }
 
@@ -268,10 +268,10 @@ class Transmission {
   /// [ids] integer identifier list of the torrents to remove
   /// Throws [TransmissionException] if errors
   Future<void> verifyTorrents(List<int> ids) async {
-    final results = await _dio.post('/',
+    final results = await _post(
         data: _Request(methodVerifyTorrent, arguments: {
-          'ids': ids,
-        }).toJSON());
+      'ids': ids,
+    }).toJSON());
     _checkResults(_Response.fromJSON(results.data));
   }
 
@@ -279,10 +279,10 @@ class Transmission {
   /// [ids] integer identifier list of the torrents to remove
   /// Throws [TransmissionException] if errors
   Future<void> askForMorePeers(List<int> ids) async {
-    final results = await _dio.post('/',
+    final results = await _post(
         data: _Request(methodUpdateTorrent, arguments: {
-          'ids': ids,
-        }).toJSON());
+      'ids': ids,
+    }).toJSON());
     _checkResults(_Response.fromJSON(results.data));
   }
 
@@ -320,11 +320,11 @@ class Transmission {
       'peersSendingToUs',
     ],
   }) async {
-    final results = await _dio.post('/',
+    final results = await _post(
         data: _Request(methodGetTorrent, arguments: {
-          'fields': fields,
-          'ids': 'recently-active',
-        }).toJSON());
+      'fields': fields,
+      'ids': 'recently-active',
+    }).toJSON());
     final response = _Response.fromJSON(results.data);
     _checkResults(response);
     final torrentsData = response.arguments!['torrents'];
@@ -364,7 +364,7 @@ class Transmission {
       'peersSendingToUs',
     ],
   }) async {
-    final results = await _dio.post('/', data: _Request(methodGetTorrent, arguments: ids != null ? {'ids': ids, 'fields': fields} : {'fields': fields}).toJSON());
+    final results = await _post(data: _Request(methodGetTorrent, arguments: ids != null ? {'ids': ids, 'fields': fields} : {'fields': fields}).toJSON());
     final response = _Response.fromJSON(results.data);
     _checkResults(response);
     final torrentsData = response.arguments!['torrents'];
@@ -388,10 +388,10 @@ class Transmission {
       'version',
     ],
   }) async {
-    final results = await _dio.post('/',
+    final results = await _post(
         data: _Request(methodGetSession, arguments: {
-          'fields': fields,
-        }).toJSON());
+      'fields': fields,
+    }).toJSON());
     final response = _Response.fromJSON(results.data);
     _checkResults(response);
     return response.arguments;
@@ -401,14 +401,14 @@ class Transmission {
   /// [fields] to set, can be checked at https://github.com/transmission/transmission/blob/master/extras/rpc-spec.txt
   /// Throws [TransmissionException] if errors
   Future<void> setSession(Map<String, dynamic> fields) async {
-    final results = await _dio.post('/', data: _Request(methodSetSession, arguments: fields).toJSON());
+    final results = await _post(data: _Request(methodSetSession, arguments: fields).toJSON());
     final response = _Response.fromJSON(results.data);
     _checkResults(response);
   }
 
   /// Session Statistics
   Future<SessionStatistics> getSessionStatistics() async {
-    final results = await _dio.post('/', data: _Request(methodSessionStats).toJSON());
+    final results = await _post(data: _Request(methodSessionStats).toJSON());
     final response = _Response.fromJSON(results.data);
     _checkResults(response);
     return SessionStatistics._(response.arguments!);
@@ -417,8 +417,6 @@ class Transmission {
   /// Free Space
   Future<FreeSpace> getFreeSpace(String path) async {
     final results = await _post(data: _Request(methodFreeSpace, arguments: {'path': path}).toJSON());
-    print('getFreeSpace ret headers:${results.headers}');
-    print('getFreeSpace ret:${results.data}');
     final response = _Response.fromJSON(results.data);
     _checkResults(response);
     return FreeSpace._(response.arguments!);
@@ -426,7 +424,7 @@ class Transmission {
 
   /// Torrents set
   Future<void> setTorrents(Map<String, dynamic> fields) async {
-    final results = await _dio.post('/', data: _Request(methodSetTorrent, arguments: fields).toJSON());
+    final results = await _post(data: _Request(methodSetTorrent, arguments: fields).toJSON());
     final response = _Response.fromJSON(results.data);
     _checkResults(response);
   }
