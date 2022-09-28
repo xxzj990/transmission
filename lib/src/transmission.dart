@@ -132,7 +132,7 @@ class Transmission {
   Future<Response> _post({required Map<String, dynamic> data}) async {
     if (useProxy) {
       var proxyBody = {'url': Uri.encodeFull(url), 'body': data};
-      return await _dio.post('/request2', data: json.encode(proxyBody));
+      return await _dio.post('/request/2', data: json.encode(proxyBody));
     } else {
       return await _dio.post('/', data: data);
     }
